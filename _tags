@@ -17,3 +17,4 @@
 "lib/fsevents.cmxs": use_fsevents
 <lib/*.ml{,i}>: pkg_ctypes.foreign
 # OASIS_STOP
+true: annot, bin_annot, principal, strict_sequence
