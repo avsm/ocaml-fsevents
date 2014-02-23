@@ -82,15 +82,15 @@ module CFString = struct
 
   let to_chars t =
     let n = get_length t in
-    let a = Array.make char n in
-    let _ = get_C_string t (Array.start a) n ascii in
+    let a = CArray.make char n in
+    let _ = get_C_string t (CArray.start a) n ascii in
     a
 
   let string_of_chars a =
     (* XXX: how can we do better ? *)
-    let n = Array.length a in
+    let n = CArray.length a in
     let s = String.create n in
-    for i = 0 to n - 1 do s.[i] <- (Array.get a i) done;
+    for i = 0 to n - 1 do s.[i] <- (CArray.get a i) done;
     s
 
   let to_string t =
@@ -169,7 +169,7 @@ module CFArray = struct
   let to_array t =
     let n = get_count t in
     let r = { CFRange.location = 0; length = n } in
-    Array.from_ptr (get_values t r) n
+    CArray.from_ptr (get_values t r) n
 
   (* CFArrayRef CFArrayCreate (
        CFAllocatorRef allocator,
@@ -187,8 +187,8 @@ module CFArray = struct
       returning _t)
 
   let of_array a =
-    let n = Array.length a in
-    create None (Array.start a) n None
+    let n = CArray.length a in
+    create None (CArray.start a) n None
 
   let t = view ~read:to_array ~write:of_array _t
 
@@ -412,17 +412,17 @@ type callback = (string * event_flags * event_id) list -> unit
 let create_callback (create_flags:create_flags) (fn:callback) =
   fun stream client_callback_info num_events event_paths event_flags event_ids ->
     let n = Unsigned.Size_t.to_int num_events in
-    let paths = Array.(from_ptr event_paths n) in
+    let paths = CArray.(from_ptr event_paths n) in
     let string (ptr:unit ptr) = match create_flags with
       | `UseCFTypes -> CFString.string_of_ptr ptr
       | _           -> failwith "TODO" in
-    let flags = Array.(from_ptr event_flags n) in
-    let ids = Array.(from_ptr event_ids n) in
+    let flags = CArray.(from_ptr event_flags n) in
+    let ids = CArray.(from_ptr event_ids n) in
     let l = ref [] in
     for i = 0 to n - 1 do
-      l := ( string (Array.get paths i),
-             Array.get flags i,
-             Unsigned.UInt64.to_int64 (Array.get ids i)
+      l := ( string (CArray.get paths i),
+             CArray.get flags i,
+             Unsigned.UInt64.to_int64 (CArray.get ids i)
            ) :: !l
     done;
     fn (List.rev !l)
@@ -468,5 +468,5 @@ let create ~latency ~(flags:create_flags) (paths:string list) (callback:callback
   let paths = List.map (fun str ->
       to_voidp (CFString.of_string str)
     ) paths in
-  let paths = Array.of_list (ptr void) paths in
+  let paths = CArray.of_list (ptr void) paths in
   create None (create_callback flags callback) None paths since_now latency flags
